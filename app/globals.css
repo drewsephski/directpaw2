@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #17231d;
+  --color-cream: #f7f4ec;
+  --color-leaf: #256b4a;
+  --color-mint: #dcebdd;
+  --color-coral: #e2785d;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-ink);
+  background: var(--color-cream);
+}
+
+button, input, textarea { border-radius: 0; }
