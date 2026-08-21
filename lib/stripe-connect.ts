@@ -28,21 +28,6 @@ export function buildConnectedAccountParams(sitter: { id: string; email: string;
   };
 }
 
-export async function syncConnectedAccountProfile(
-  stripeAccountId: string,
-  sitter: { id: string; businessName: string },
-): Promise<void> {
-  await getStripe().v2.core.accounts.update(stripeAccountId, {
-    defaults: {
-      profile: {
-        business_url: getSitterProfileUrl(sitter.id),
-        doing_business_as: sitter.businessName,
-        product_description: SITTER_SERVICE_DESCRIPTION,
-      },
-    },
-  });
-}
-
 export async function refreshStripeReadiness(sitter: StripeReadinessSitter, dependencies?: ReadinessDependencies): Promise<boolean> {
   if (!sitter.stripeAccountId) return false;
   try {
