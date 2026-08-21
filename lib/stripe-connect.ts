@@ -2,6 +2,19 @@ import type { Sitter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getOrigin, getStripe } from "@/lib/stripe";
 
+export function buildConnectedAccountParams(sitter: Pick<Sitter, "id" | "email" | "businessName">) {
+  return {
+    contact_email: sitter.email,
+    display_name: sitter.businessName,
+    identity: { country: "US" },
+    dashboard: "full" as const,
+    defaults: { responsibilities: { fees_collector: "stripe" as const, losses_collector: "stripe" as const } },
+    configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
+    metadata: { directpaw_sitter_id: sitter.id },
+    include: ["configuration.merchant" as const, "defaults" as const],
+  };
+}
+
 export async function refreshStripeReadiness(sitter: Sitter): Promise<boolean> {
   if (!sitter.stripeAccountId) return false;
   try {

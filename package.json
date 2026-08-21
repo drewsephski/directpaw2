@@ -12,6 +12,8 @@
     "db:migrate": "bun --env-file=.env.local scripts/migrate.ts"
   },
   "dependencies": {
+    "better-auth": "1.7.1",
+    "kysely-postgres-js": "3.0.0",
     "next": "16.2.11",
     "postgres": "^3.4.9",
     "react": "19.0.0",

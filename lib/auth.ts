@@ -1,52 +1,73 @@
-import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
-import { cookies } from "next/headers";
+import { betterAuth } from "better-auth";
+import { PostgresJSDialect } from "kysely-postgres-js";
+import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
-const scrypt = promisify(scryptCallback);
-const SESSION_COOKIE = "directpaw_session";
+const origin = process.env.BETTER_AUTH_URL ?? process.env.DOMAIN ?? "http://localhost:4242";
+
+export const auth = betterAuth({
+  appName: "DirectPaw",
+  baseURL: origin,
+  database: { dialect: new PostgresJSDialect({ postgres: db() }), type: "postgres", transaction: true },
+  trustedOrigins: [origin],
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+    autoSignIn: true,
+    password: { hash: hashPassword, verify: ({ password, hash }) => verifyPassword(password, hash) },
+  },
+  user: {
+    modelName: "sitters",
+    fields: { name: "business_name", emailVerified: "email_verified", image: "image", createdAt: "created_at", updatedAt: "updated_at" },
+    additionalFields: {
+      stripeAccountId: { type: "string", required: false, input: false, fieldName: "stripe_account_id" },
+      stripeReady: { type: "boolean", required: true, defaultValue: false, input: false, fieldName: "stripe_ready" },
+    },
+  },
+  session: {
+    modelName: "auth_sessions",
+    expiresIn: 60 * 60 * 24 * 30,
+    updateAge: 60 * 60 * 24,
+    fields: { userId: "user_id", expiresAt: "expires_at", ipAddress: "ip_address", userAgent: "user_agent", createdAt: "created_at", updatedAt: "updated_at" },
+  },
+  account: {
+    modelName: "auth_accounts",
+    fields: {
+      accountId: "account_id", providerId: "provider_id", userId: "user_id", accessToken: "access_token",
+      refreshToken: "refresh_token", idToken: "id_token", accessTokenExpiresAt: "access_token_expires_at",
+      refreshTokenExpiresAt: "refresh_token_expires_at", createdAt: "created_at", updatedAt: "updated_at",
+    },
+  },
+  verification: {
+    modelName: "auth_verifications",
+    fields: { expiresAt: "expires_at", createdAt: "created_at", updatedAt: "updated_at" },
+  },
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    modelName: "auth_rate_limits",
+    fields: { lastRequest: "last_request" },
+    customRules: { "/sign-in/email": { window: 60, max: 5 }, "/sign-up/email": { window: 60, max: 3 } },
+  },
+  advanced: {
+    cookiePrefix: "directpaw",
+    useSecureCookies: process.env.NODE_ENV === "production",
+    database: { generateId: "uuid" },
+  },
+});
 
 export type Sitter = { id: string; email: string; businessName: string; stripeAccountId: string | null; stripeReady: boolean };
 
-export async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
-  const key = (await scrypt(password, salt, 64)) as Buffer;
-  return `${salt}:${key.toString("hex")}`;
-}
-
-export async function verifyPassword(password: string, stored: string): Promise<boolean> {
-  const [salt, expectedHex] = stored.split(":");
-  if (!salt || !expectedHex) return false;
-  const actual = (await scrypt(password, salt, 64)) as Buffer;
-  const expected = Buffer.from(expectedHex, "hex");
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
-
-const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
-
-export async function createSession(sitterId: string): Promise<void> {
-  const token = randomBytes(32).toString("base64url");
-  await db()`insert into sitter_sessions (sitter_id, token_hash, expires_at)
-    values (${sitterId}::uuid, ${hashToken(token)}, now() + interval '30 days')`;
-  (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
-    path: "/", maxAge: 60 * 60 * 24 * 30,
-  });
-}
-
-export async function destroySession(): Promise<void> {
-  const jar = await cookies();
-  const token = jar.get(SESSION_COOKIE)?.value;
-  if (token) await db()`delete from sitter_sessions where token_hash = ${hashToken(token)}`;
-  jar.delete(SESSION_COOKIE);
-}
-
 export async function getCurrentSitter(): Promise<Sitter | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const [row] = await db()<Array<{ id: string; email: string; business_name: string; stripe_account_id: string | null; stripe_ready: boolean }>>
-    `select s.id, s.email, s.business_name, s.stripe_account_id, s.stripe_ready
-     from sitter_sessions ss join sitters s on s.id = ss.sitter_id
-     where ss.token_hash = ${hashToken(token)} and ss.expires_at > now()`;
-  return row ? { id: row.id, email: row.email, businessName: row.business_name, stripeAccountId: row.stripe_account_id, stripeReady: row.stripe_ready } : null;
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    businessName: session.user.name,
+    stripeAccountId: session.user.stripeAccountId ?? null,
+    stripeReady: session.user.stripeReady,
+  };
 }

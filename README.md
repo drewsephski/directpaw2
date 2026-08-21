@@ -12,7 +12,7 @@ The sitter is the merchant of record. Stripe collects its processing fees from t
 
 ## Stack and prerequisites
 
-- Next.js App Router, TypeScript, Bun, `postgres.js`, PostgreSQL, and `stripe-node`
+- Next.js App Router, TypeScript, Bun, Better Auth, `postgres.js`, PostgreSQL, and `stripe-node`
 - A Stripe Connect platform with Accounts v2 access
 - Node 18+ where Bun is not providing the runtime
 - A PostgreSQL database with permission to create tables, indexes, constraints, and `pgcrypto`
@@ -26,6 +26,8 @@ Connected accounts are created with `configuration.merchant`, `dashboard: "full"
 Copy `.env.example` to `.env.local` and set:
 
 - `DATABASE_URL`: PostgreSQL connection string.
+- `BETTER_AUTH_SECRET`: random secret of at least 32 characters. Generate it with `openssl rand -base64 32` and keep it stable and private in each environment.
+- `BETTER_AUTH_URL`: canonical application origin. Use `http://localhost:4242` locally and the HTTPS production origin in production.
 - `STRIPE_SECRET_KEY`: server-side Stripe key. Prefer a restricted `rk_` key.
 - `STRIPE_WEBHOOK_SECRET`: signing secret for this endpoint, not an API key.
 - `DOMAIN`: public application origin without a trailing slash. Production must use HTTPS.
@@ -51,6 +53,8 @@ bun run dev
 ```
 
 Migrations are SQL files in `db/migrations`, applied in lexical order, and recorded in `schema_migrations`. The runner uses a PostgreSQL advisory lock and each new migration runs transactionally, so rerunning it is safe. Never edit an applied migration; add the next numbered file.
+
+Better Auth provides email/password sign-up, sign-in, database sessions, secure HTTP-only cookies, origin checks, and database-backed rate limiting. Migration `003` keeps existing sitter IDs and salted-scrypt passwords by moving the credential hashes into Better Auth accounts; it invalidates legacy sessions, so existing sitters sign in again. Email verification and password reset are intentionally not exposed until DirectPaw has a transactional email provider—those flows must never pretend to send mail.
 
 ## Stripe webhook testing
 

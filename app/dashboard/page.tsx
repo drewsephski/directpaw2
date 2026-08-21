@@ -4,6 +4,7 @@ import { getCurrentSitter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/payment-requests";
 import { refreshStripeReadiness } from "@/lib/stripe-connect";
+import { SignOutButton } from "@/app/dashboard/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const requests = await db()<Array<{ public_token: string; amount_cents: number; description: string; status: string; created_at: Date }>>
     `select public_token, amount_cents, description, status, created_at from payment_requests where sitter_id = ${sitter.id}::uuid order by created_at desc limit 20`;
   return <main className="min-h-screen px-6 py-8 lg:px-12">
-    <nav className="mx-auto flex max-w-6xl items-center justify-between border-b border-ink/20 pb-5"><Link href="/dashboard" className="text-xl font-black">DirectPaw</Link><form action="/api/auth/logout" method="post"><button className="text-sm font-bold hover:text-leaf">Sign out</button></form></nav>
+    <nav className="mx-auto flex max-w-6xl items-center justify-between border-b border-ink/20 pb-5"><Link href="/dashboard" className="text-xl font-black">DirectPaw</Link><SignOutButton /></nav>
     <div className="mx-auto max-w-6xl py-10">
       <p className="text-sm text-ink/55">{sitter.email}</p><h1 className="mt-1 text-4xl font-black tracking-tight">{sitter.businessName}</h1>
       {(query.error || query.onboarding) && <p className="mt-6 border border-ink/20 bg-white p-4" role="status">{query.error ?? (query.onboarding === "complete" ? "Stripe is connected. You can now request payments." : query.onboarding === "expired" ? "That onboarding link expired. Start again below." : "Stripe is reviewing your details. Payment requests unlock when card payments are active.")}</p>}

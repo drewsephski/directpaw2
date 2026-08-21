@@ -8,6 +8,10 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://user:password@127.0.0.1:5432/directpaw
+      BETTER_AUTH_SECRET: ci-only-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:4242
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
