@@ -16,17 +16,24 @@ export function AuthForms() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
-    const result = mode === "sign-up"
-      ? await authClient.signUp.email({ email, password, name: String(form.get("businessName") ?? "").trim() })
-      : await authClient.signIn.email({ email, password });
+    try {
+      const result = mode === "sign-up"
+        ? await authClient.signUp.email({ email, password, name: String(form.get("businessName") ?? "").trim() })
+        : await authClient.signIn.email({ email, password });
 
-    if (result.error) {
-      setError(mode === "sign-in" ? "Invalid email or password." : "Could not create the account. Check your details and try again.");
+      if (result.error) {
+        setError(mode === "sign-in" ? "Invalid email or password." : "Could not create the account. Check your details and try again.");
+        return;
+      }
+      const session = await authClient.getSession();
+      if (session.error || !session.data) throw new Error("Session cookie was not established");
+      router.replace("/dashboard");
+      router.refresh();
+    } catch {
+      setError("DirectPaw could not complete authentication. Please try again.");
+    } finally {
       setPending(false);
-      return;
     }
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return <>
