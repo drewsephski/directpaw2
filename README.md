@@ -19,7 +19,7 @@ The sitter is the merchant of record. Stripe collects its processing fees from t
 
 Stripe documents Accounts v2 as generally available for Connect. DirectPaw also uses the Account Links v2 endpoint documented for the stable `2026-07-29.dahlia` API version; preview programs that can be represented by Accounts v2 are separate from DirectPaw's merchant-account use case.
 
-Connected accounts are created with `configuration.merchant`, `dashboard: "full"`, `fees_collector: "stripe"`, `losses_collector: "stripe"`, and an requested card-payments capability. Stripe-hosted onboarding collects `eventually_due` requirements. DirectPaw revalidates `configuration.merchant.capabilities.card_payments.status === "active"` before creating a request or Checkout Session.
+Connected accounts are created with `configuration.merchant`, `dashboard: "full"`, `fees_collector: "stripe"`, `losses_collector: "stripe"`, and a requested card-payments capability. DirectPaw prefills `defaults.profile` with the sitter's public `/sitters/[id]` service page and product description, so independent sitters do not need to own a separate website. Stripe-hosted onboarding collects `eventually_due` requirements. DirectPaw revalidates `configuration.merchant.capabilities.card_payments.status === "active"` before creating a request or Checkout Session.
 
 ## Configuration
 

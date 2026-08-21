@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getOrigin, getStripe } from "@/lib/stripe";
+import { getSitterProfileUrl, SITTER_SERVICE_DESCRIPTION } from "@/lib/sitter-profile";
 
 export type StripeReadinessSitter = { id: string; stripeAccountId: string | null; stripeReady: boolean };
 type ReadinessDependencies = {
@@ -13,11 +14,33 @@ export function buildConnectedAccountParams(sitter: { id: string; email: string;
     display_name: sitter.businessName,
     identity: { country: "US" },
     dashboard: "full" as const,
-    defaults: { responsibilities: { fees_collector: "stripe" as const, losses_collector: "stripe" as const } },
+    defaults: {
+      profile: {
+        business_url: getSitterProfileUrl(sitter.id),
+        doing_business_as: sitter.businessName,
+        product_description: SITTER_SERVICE_DESCRIPTION,
+      },
+      responsibilities: { fees_collector: "stripe" as const, losses_collector: "stripe" as const },
+    },
     configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
     metadata: { directpaw_sitter_id: sitter.id },
     include: ["configuration.merchant" as const, "defaults" as const],
   };
+}
+
+export async function syncConnectedAccountProfile(
+  stripeAccountId: string,
+  sitter: { id: string; businessName: string },
+): Promise<void> {
+  await getStripe().v2.core.accounts.update(stripeAccountId, {
+    defaults: {
+      profile: {
+        business_url: getSitterProfileUrl(sitter.id),
+        doing_business_as: sitter.businessName,
+        product_description: SITTER_SERVICE_DESCRIPTION,
+      },
+    },
+  });
 }
 
 export async function refreshStripeReadiness(sitter: StripeReadinessSitter, dependencies?: ReadinessDependencies): Promise<boolean> {
