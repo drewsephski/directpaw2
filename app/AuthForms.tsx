@@ -39,7 +39,7 @@ export function AuthForms() {
   return <>
     {error && <p className="mt-5 border border-coral bg-coral/10 p-3 text-sm" role="alert">{error}</p>}
     <form onSubmit={(event) => submit(event, "sign-up")} className="mt-6 space-y-4">
-      <Field label="Business name" name="businessName" autoComplete="organization" minLength={2} maxLength={100} />
+      <Field label="Your name or pet-care business name" name="businessName" autoComplete="organization" minLength={2} maxLength={100} />
       <Field label="Email" name="email" type="email" autoComplete="email" />
       <Field label="Password" name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} hint="At least 12 characters" />
       <button disabled={pending} className="w-full border border-leaf bg-leaf px-5 py-3 font-bold text-white hover:bg-ink disabled:opacity-60">{pending ? "Please wait…" : "Create account"}</button>

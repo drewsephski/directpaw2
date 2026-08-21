@@ -12,6 +12,11 @@ describe("connected account creation", () => {
     expect(params.identity).toEqual({ country: "US" });
     expect(params.configuration.merchant.capabilities.card_payments.requested).toBe(true);
     expect(params.defaults.responsibilities).toEqual({ fees_collector: "stripe", losses_collector: "stripe" });
+    expect(params.defaults.profile).toEqual({
+      business_url: "http://localhost:4242/sitters/sitter-id",
+      doing_business_as: "Good Dog Care",
+      product_description: "Independent pet sitting and pet care services arranged directly with existing clients. Clients receive a DirectPaw payment request for agreed services and pay online by card.",
+    });
   });
 });
 

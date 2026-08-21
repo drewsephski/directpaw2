@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/payment-requests";
 import { refreshStripeReadiness } from "@/lib/stripe-connect";
 import { SignOutButton } from "@/app/dashboard/SignOutButton";
 import { getApplicationOrigin } from "@/lib/origin";
+import { getSitterProfilePath } from "@/lib/sitter-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     <nav className="mx-auto flex max-w-6xl items-center justify-between border-b border-ink/20 pb-5"><Link href="/dashboard" className="text-xl font-black">DirectPaw</Link><SignOutButton /></nav>
     <div className="mx-auto max-w-6xl py-10">
       <p className="text-sm text-ink/55">{sitter.email}</p><h1 className="mt-1 text-4xl font-black tracking-tight">{sitter.businessName}</h1>
+      <Link className="mt-3 inline-block text-sm font-bold text-leaf underline" href={getSitterProfilePath(sitter.id)}>View your public service profile</Link>
       {(query.error || query.onboarding) && <p className="mt-6 border border-ink/20 bg-white p-4" role="status">{query.error ?? (query.onboarding === "complete" ? "Stripe is connected. You can now request payments." : query.onboarding === "expired" ? "That onboarding link expired. Start again below." : "Stripe is reviewing your details. Payment requests unlock when card payments are active.")}</p>}
       {query.created && <p className="mt-6 border border-leaf bg-mint p-4">Payment link created: <Link className="font-bold underline" href={`/pay/${query.created}`}>{`${getApplicationOrigin()}/pay/${query.created}`}</Link></p>}
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
