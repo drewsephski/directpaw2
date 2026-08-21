@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkoutLifecycleDecision, type CheckoutSnapshot } from "@/lib/checkout";
+import { buildCheckoutSessionParams, checkoutLifecycleDecision, type CheckoutRow, type CheckoutSnapshot } from "@/lib/checkout";
 
 const request = { id: "11111111-1111-4111-8111-111111111111", amount_cents: 10_000, currency: "usd" };
 const session = (overrides: Partial<CheckoutSnapshot> = {}): CheckoutSnapshot => ({
@@ -24,5 +24,24 @@ describe("canonical Checkout lifecycle", () => {
     expect(() => checkoutLifecycleDecision(request, session({ paymentRequestId: "other" }))).toThrow();
     expect(() => checkoutLifecycleDecision(request, session({ amountTotal: 9_999 }))).toThrow();
     expect(() => checkoutLifecycleDecision(request, session({ status: "complete", paymentStatus: "unpaid", url: null }))).toThrow();
+  });
+});
+
+describe("Checkout payment method contract", () => {
+  test("accepts only cards and card-backed wallets", () => {
+    const row: CheckoutRow = {
+      id: request.id,
+      public_token: "public-token",
+      amount_cents: request.amount_cents,
+      platform_fee_cents: 300,
+      description: "Pet sitting",
+      client_email: "owner@example.com",
+      currency: request.currency,
+      status: "open",
+      stripe_checkout_session_id: null,
+      stripe_account_id: "acct_sitter",
+    };
+
+    expect(buildCheckoutSessionParams(row).payment_method_types).toEqual(["card"]);
   });
 });

@@ -76,7 +76,7 @@ stripe listen \
   --forward-connect-to localhost:4242/api/webhook
 ```
 
-Put the printed `whsec_...` value in `STRIPE_WEBHOOK_SECRET` and restart the app. Use a connected test account with active card payments. Checkout is intentionally constrained to cards and card-backed wallets; DirectPaw v1 has no asynchronous bank-payment states.
+Put the printed `whsec_...` value in `STRIPE_WEBHOOK_SECRET` and restart the app. Use a connected test account with active card payments. Every Checkout Session explicitly sets `payment_method_types: ["card"]`, which constrains payment to cards and card-backed wallets regardless of connected-account Dashboard settings. DirectPaw v1 has no asynchronous bank-payment states or asynchronous-payment webhooks.
 
 ## Payment integrity
 

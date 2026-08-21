@@ -3,7 +3,7 @@ import type postgres from "postgres";
 import { db } from "@/lib/db";
 import { getOrigin, getStripe } from "@/lib/stripe";
 
-type CheckoutRow = {
+export type CheckoutRow = {
   id: string; public_token: string; amount_cents: number; platform_fee_cents: number; description: string;
   client_email: string | null; currency: string; status: string; stripe_checkout_session_id: string | null;
   stripe_account_id: string | null;
@@ -36,9 +36,10 @@ function snapshot(session: Stripe.Checkout.Session): CheckoutSnapshot {
   };
 }
 
-function createParameters(row: CheckoutRow): Stripe.Checkout.SessionCreateParams {
+export function buildCheckoutSessionParams(row: CheckoutRow): Stripe.Checkout.SessionCreateParams {
   return {
     mode: "payment",
+    payment_method_types: ["card"],
     client_reference_id: row.id,
     line_items: [{ price_data: { currency: row.currency, unit_amount: row.amount_cents, product_data: { name: row.description } }, quantity: 1 }],
     payment_intent_data: { application_fee_amount: row.platform_fee_cents, metadata: { paymentRequestId: row.id } },
@@ -50,7 +51,7 @@ function createParameters(row: CheckoutRow): Stripe.Checkout.SessionCreateParams
 }
 
 async function createAndPersist(sql: Transaction, row: CheckoutRow, idempotencyKey: string): Promise<CheckoutResult> {
-  const session = await getStripe().checkout.sessions.create(createParameters(row), { stripeAccount: row.stripe_account_id!, idempotencyKey });
+  const session = await getStripe().checkout.sessions.create(buildCheckoutSessionParams(row), { stripeAccount: row.stripe_account_id!, idempotencyKey });
   if (!session.url) throw new Error("Stripe did not return a Checkout URL");
   await sql`update payment_requests set stripe_checkout_session_id = ${session.id}, updated_at = now() where id = ${row.id}::uuid`;
   return { kind: "open", sessionId: session.id, url: session.url };
