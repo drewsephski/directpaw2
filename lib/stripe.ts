@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { getApplicationOrigin } from "@/lib/origin";
 
 let stripeInstance: Stripe | null = null;
 
@@ -13,5 +14,5 @@ export function getStripe(): Stripe {
 }
 
 export function getOrigin(): string {
-  return (process.env.DOMAIN ?? "http://localhost:4242").replace(/\/$/, "");
+  return getApplicationOrigin();
 }

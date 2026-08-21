@@ -33,6 +33,12 @@ describe("cumulative application-fee refunds", () => {
 });
 
 describe("payment event ordering and idempotency", () => {
+  test("a legacy request with no canonical Session adopts its first valid Checkout", () => {
+    expect(applyPaymentSignal(baseState(), signal()).stripeCheckoutSessionId).toBe("cs_1");
+  });
+  test("a different Checkout cannot replace the canonical Session", () => {
+    expect(() => applyPaymentSignal(baseState({ stripeCheckoutSessionId: "cs_canonical" }), signal({ checkoutSessionId: "cs_other" }))).toThrow();
+  });
   test("duplicate successful Checkout objects are a no-op", () => {
     const paid = applyPaymentSignal(baseState(), signal());
     expect(applyPaymentSignal(paid, signal())).toEqual(paid);
@@ -69,5 +75,6 @@ describe("success page Checkout validation", () => {
     expect(() => validatePaidCheckoutSession(baseState(), { ...session, clientReferenceId: "other" })).toThrow();
     expect(() => validatePaidCheckoutSession(baseState(), { ...session, amountTotal: 9_999 })).toThrow();
     expect(() => validatePaidCheckoutSession(baseState(), { ...session, stripeAccountId: "acct_other" })).toThrow();
+    expect(() => validatePaidCheckoutSession(baseState({ stripeCheckoutSessionId: "cs_canonical" }), session)).toThrow();
   });
 });

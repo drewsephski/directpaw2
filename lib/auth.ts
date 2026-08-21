@@ -3,8 +3,9 @@ import { PostgresJSDialect } from "kysely-postgres-js";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { getApplicationOrigin } from "@/lib/origin";
 
-const origin = process.env.BETTER_AUTH_URL ?? process.env.DOMAIN ?? "http://localhost:4242";
+const origin = getApplicationOrigin();
 
 export const auth = betterAuth({
   appName: "DirectPaw",

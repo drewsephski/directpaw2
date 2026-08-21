@@ -1,8 +1,13 @@
-import type { Sitter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getOrigin, getStripe } from "@/lib/stripe";
 
-export function buildConnectedAccountParams(sitter: Pick<Sitter, "id" | "email" | "businessName">) {
+export type StripeReadinessSitter = { id: string; stripeAccountId: string | null; stripeReady: boolean };
+type ReadinessDependencies = {
+  retrieve: (accountId: string) => Promise<{ configuration?: { merchant?: { capabilities?: { card_payments?: { status?: string } } } } }>;
+  persist: (sitterId: string, ready: boolean) => Promise<unknown>;
+};
+
+export function buildConnectedAccountParams(sitter: { id: string; email: string; businessName: string }) {
   return {
     contact_email: sitter.email,
     display_name: sitter.businessName,
@@ -15,12 +20,17 @@ export function buildConnectedAccountParams(sitter: Pick<Sitter, "id" | "email" 
   };
 }
 
-export async function refreshStripeReadiness(sitter: Sitter): Promise<boolean> {
+export async function refreshStripeReadiness(sitter: StripeReadinessSitter, dependencies?: ReadinessDependencies): Promise<boolean> {
   if (!sitter.stripeAccountId) return false;
   try {
-    const account = await getStripe().v2.core.accounts.retrieve(sitter.stripeAccountId, { include: ["configuration.merchant"] });
+    const account = dependencies
+      ? await dependencies.retrieve(sitter.stripeAccountId)
+      : await getStripe().v2.core.accounts.retrieve(sitter.stripeAccountId, { include: ["configuration.merchant"] });
     const ready = account.configuration?.merchant?.capabilities?.card_payments?.status === "active";
-    if (ready !== sitter.stripeReady) await db()`update sitters set stripe_ready = ${ready} where id = ${sitter.id}::uuid`;
+    if (ready !== sitter.stripeReady) {
+      if (dependencies) await dependencies.persist(sitter.id, ready);
+      else await db()`update sitters set stripe_ready = ${ready} where id = ${sitter.id}::uuid`;
+    }
     return ready;
   } catch (error) {
     console.error("Unable to verify Stripe connected-account readiness", { sitterId: sitter.id, error: error instanceof Error ? error.message : "Unknown Stripe error" });

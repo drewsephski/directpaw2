@@ -8,18 +8,37 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: directpaw
+          POSTGRES_PASSWORD: directpaw
+          POSTGRES_DB: directpaw_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U directpaw -d directpaw_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      DATABASE_URL: postgresql://user:password@127.0.0.1:5432/directpaw
+      DATABASE_URL: postgresql://directpaw:directpaw@127.0.0.1:5432/directpaw_test
       BETTER_AUTH_SECRET: ci-only-secret-at-least-32-characters
       BETTER_AUTH_URL: http://localhost:4242
+      RUN_DB_TESTS: "1"
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.5
       - run: bun install --frozen-lockfile
+      - run: bun run db:migrate
+      - run: bun test
       - run: bun run lint
       - run: bun run typecheck
-      - run: bun test
       - run: bun run build
+        env:
+          BETTER_AUTH_URL: https://directpaw.example
       - run: git diff --check

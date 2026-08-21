@@ -61,4 +61,5 @@ export function validatePaidCheckoutSession(state: PaymentState, session: Checko
   if (session.paymentStatus !== "paid" || session.status !== "complete") throw new Error("Checkout Session is not paid and complete");
   if (session.clientReferenceId !== state.requestId || session.paymentRequestId !== state.requestId) throw new Error("Checkout Session does not belong to this request");
   if (session.amountTotal !== state.amountCents || session.currency?.toLowerCase() !== state.currency) throw new Error("Checkout Session amount or currency does not match");
+  if (state.stripeCheckoutSessionId && session.id !== state.stripeCheckoutSessionId) throw new Error("Checkout Session is not the canonical session for this request");
 }

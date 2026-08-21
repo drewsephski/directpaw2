@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "db:migrate": "bun --env-file=.env.local scripts/migrate.ts"
+    "db:migrate": "bun scripts/migrate.ts"
   },
   "dependencies": {
     "better-auth": "1.7.1",

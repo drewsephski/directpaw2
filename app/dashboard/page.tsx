@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/payment-requests";
 import { refreshStripeReadiness } from "@/lib/stripe-connect";
 import { SignOutButton } from "@/app/dashboard/SignOutButton";
+import { getApplicationOrigin } from "@/lib/origin";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     <div className="mx-auto max-w-6xl py-10">
       <p className="text-sm text-ink/55">{sitter.email}</p><h1 className="mt-1 text-4xl font-black tracking-tight">{sitter.businessName}</h1>
       {(query.error || query.onboarding) && <p className="mt-6 border border-ink/20 bg-white p-4" role="status">{query.error ?? (query.onboarding === "complete" ? "Stripe is connected. You can now request payments." : query.onboarding === "expired" ? "That onboarding link expired. Start again below." : "Stripe is reviewing your details. Payment requests unlock when card payments are active.")}</p>}
-      {query.created && <p className="mt-6 border border-leaf bg-mint p-4">Payment link created: <Link className="font-bold underline" href={`/pay/${query.created}`}>{`${process.env.DOMAIN ?? "http://localhost:4242"}/pay/${query.created}`}</Link></p>}
+      {query.created && <p className="mt-6 border border-leaf bg-mint p-4">Payment link created: <Link className="font-bold underline" href={`/pay/${query.created}`}>{`${getApplicationOrigin()}/pay/${query.created}`}</Link></p>}
       <div className="mt-10 grid gap-8 lg:grid-cols-2">
         <section className="border border-ink bg-white p-7">
           <p className="text-xs font-bold uppercase tracking-[.16em] text-leaf">Step 1</p><h2 className="mt-2 text-2xl font-bold">Connect Stripe</h2>
