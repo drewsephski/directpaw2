@@ -1,0 +1,32 @@
+import type { Sitter } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { getOrigin, getStripe } from "@/lib/stripe";
+
+export async function refreshStripeReadiness(sitter: Sitter): Promise<boolean> {
+  if (!sitter.stripeAccountId) return false;
+  try {
+    const account = await getStripe().v2.core.accounts.retrieve(sitter.stripeAccountId, { include: ["configuration.merchant"] });
+    const ready = account.configuration?.merchant?.capabilities?.card_payments?.status === "active";
+    if (ready !== sitter.stripeReady) await db()`update sitters set stripe_ready = ${ready} where id = ${sitter.id}::uuid`;
+    return ready;
+  } catch (error) {
+    console.error("Unable to verify Stripe connected-account readiness", { sitterId: sitter.id, error: error instanceof Error ? error.message : "Unknown Stripe error" });
+    return false;
+  }
+}
+
+export async function createStripeOnboardingLink(stripeAccountId: string): Promise<string> {
+  const link = await getStripe().v2.core.accountLinks.create({
+    account: stripeAccountId,
+    use_case: {
+      type: "account_onboarding",
+      account_onboarding: {
+        configurations: ["merchant"],
+        collection_options: { fields: "eventually_due" },
+        refresh_url: `${getOrigin()}/api/connect/refresh`,
+        return_url: `${getOrigin()}/api/connect/return`,
+      },
+    },
+  });
+  return link.url;
+}

@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { getCurrentSitter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/payment-requests";
+import { refreshStripeReadiness } from "@/lib/stripe-connect";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ created?: string; error?: string; onboarding?: string }> }) {
   const sitter = await getCurrentSitter();
   if (!sitter) redirect("/");
+  const stripeReady = sitter.stripeAccountId ? await refreshStripeReadiness(sitter) : false;
   const query = await searchParams;
   const requests = await db()<Array<{ public_token: string; amount_cents: number; description: string; status: string; created_at: Date }>>
     `select public_token, amount_cents, description, status, created_at from payment_requests where sitter_id = ${sitter.id}::uuid order by created_at desc limit 20`;
@@ -22,16 +24,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <section className="border border-ink bg-white p-7">
           <p className="text-xs font-bold uppercase tracking-[.16em] text-leaf">Step 1</p><h2 className="mt-2 text-2xl font-bold">Connect Stripe</h2>
           <p className="mt-3 text-sm leading-6 text-ink/65">Stripe securely collects identity and bank details, manages payouts, and gives you a full Stripe Dashboard.</p>
-          <div className="mt-5 flex items-center gap-3"><span className={`h-2.5 w-2.5 ${sitter.stripeReady ? "bg-leaf" : "bg-coral"}`} /><span className="text-sm font-bold">{sitter.stripeReady ? "Ready for card payments" : sitter.stripeAccountId ? "Onboarding in progress" : "Not connected"}</span></div>
-          {!sitter.stripeReady && <form action="/api/connect/onboard" method="post" className="mt-6"><button className="w-full border border-ink bg-ink px-5 py-3 font-bold text-white hover:bg-leaf">{sitter.stripeAccountId ? "Continue Stripe setup" : "Connect Stripe"}</button></form>}
+          <div className="mt-5 flex items-center gap-3"><span className={`h-2.5 w-2.5 ${stripeReady ? "bg-leaf" : "bg-coral"}`} /><span className="text-sm font-bold">{stripeReady ? "Ready for card payments" : sitter.stripeAccountId ? "Onboarding in progress" : "Not connected"}</span></div>
+          {!stripeReady && <form action="/api/connect/onboard" method="post" className="mt-6"><button className="w-full border border-ink bg-ink px-5 py-3 font-bold text-white hover:bg-leaf">{sitter.stripeAccountId ? "Continue Stripe setup" : "Connect Stripe"}</button></form>}
         </section>
-        <section className={`border border-ink bg-white p-7 ${!sitter.stripeReady ? "opacity-60" : ""}`}>
+        <section className={`border border-ink bg-white p-7 ${!stripeReady ? "opacity-60" : ""}`}>
           <p className="text-xs font-bold uppercase tracking-[.16em] text-leaf">Step 2</p><h2 className="mt-2 text-2xl font-bold">Request payment</h2>
           <form action="/api/payment-requests" method="post" className="mt-5 space-y-4">
-            <Field label="Amount (USD)" name="amount" inputMode="decimal" placeholder="75.00" disabled={!sitter.stripeReady} />
-            <Field label="Description" name="description" placeholder="Overnight sitting — Aug 22–24" disabled={!sitter.stripeReady} />
-            <Field label="Client email (optional)" name="clientEmail" type="email" disabled={!sitter.stripeReady} required={false} />
-            <button disabled={!sitter.stripeReady} className="w-full border border-leaf bg-leaf px-5 py-3 font-bold text-white hover:bg-ink disabled:cursor-not-allowed disabled:bg-ink/40">Create payment link</button>
+            <Field label="Amount (USD)" name="amount" inputMode="decimal" placeholder="75.00" disabled={!stripeReady} />
+            <Field label="Description" name="description" placeholder="Overnight sitting — Aug 22–24" disabled={!stripeReady} />
+            <Field label="Client email (optional)" name="clientEmail" type="email" disabled={!stripeReady} required={false} />
+            <button disabled={!stripeReady} className="w-full border border-leaf bg-leaf px-5 py-3 font-bold text-white hover:bg-ink disabled:cursor-not-allowed disabled:bg-ink/40">Create payment link</button>
           </form>
         </section>
       </div>
