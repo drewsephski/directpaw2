@@ -3,7 +3,7 @@ import { getCurrentSitter } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { rejectCrossOrigin } from "@/lib/http";
 import { getOrigin, getStripe } from "@/lib/stripe";
-import { buildConnectedAccountParams, createStripeOnboardingLink, syncConnectedAccountProfile } from "@/lib/stripe-connect";
+import { buildConnectedAccountParams, createStripeOnboardingLink } from "@/lib/stripe-connect";
 
 export async function POST(request: NextRequest) {
   const rejected = rejectCrossOrigin(request); if (rejected) return rejected;
@@ -18,8 +18,6 @@ export async function POST(request: NextRequest) {
     );
     accountId = account.id;
     await db()`update sitters set stripe_account_id = ${accountId} where id = ${sitter.id}::uuid and stripe_account_id is null`;
-  } else {
-    await syncConnectedAccountProfile(accountId, sitter);
   }
 
   return NextResponse.redirect(await createStripeOnboardingLink(accountId), 303);
