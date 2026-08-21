@@ -12,5 +12,5 @@ export function SignOutButton() {
     await authClient.signOut();
     router.push("/");
     router.refresh();
-  }} className="text-sm font-bold hover:text-leaf disabled:opacity-60">{pending ? "Signing out…" : "Sign out"}</button>;
+  }} className="rounded-lg px-3 py-2 text-sm font-bold hover:bg-mint/65 hover:text-leaf disabled:cursor-wait disabled:opacity-60">{pending ? "Signing out…" : "Sign out"}</button>;
 }
